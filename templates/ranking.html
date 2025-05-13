@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ranking</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    h2 {
+      margin-top: 40px;
+      color: #333;
+    }
+    table {
+      border-collapse: collapse;
+      width: 90%;
+      max-width: 500px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      margin-bottom: 30px;
+    }
+    th, td {
+      padding: 14px 10px;
+      text-align: left;
+    }
+    th {
+      background: #1976d2;
+      color: #fff;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background: #f0f4f8;
+    }
+    tr:hover {
+      background: #e3f2fd;
+    }
+    a {
+      display: inline-block;
+      padding: 10px 22px;
+      background: #1976d2;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 4px;
+      transition: background 0.2s;
+      margin-bottom: 40px;
+    }
+    a:hover {
+      background: #1565c0;
+    }
+    @media (max-width: 600px) {
+      table, th, td {
+        font-size: 15px;
+      }
+      table {
+        width: 100%;
+      }
+      h2 {
+        font-size: 1.3em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>Ranking</h2>
+  <table>
+    <tr>
+      <th>Nome</th>
+      <th>Pontos</th>
+    </tr>
+    {% for nome, pontos in ranking %}
+    <tr>
+      <td>{{ nome }}</td>
+      <td>{{ pontos }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <div class="links">
+    <a href="registros">Ver Registros</a>
+    <a href="dashboard">Dashboard</a>
+    <a href="logout">Sair</a>
+  </div>
+</body>
+</html>
