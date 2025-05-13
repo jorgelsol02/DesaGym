@@ -31,18 +31,19 @@ def init_db():
     conn.close()
 
 def calcular_pontos(treinou_qtd, fez_dieta, bebeu):
-    pontos = 0
-    if treinou_qtd < 4:
-        pontos -= 1
-    if treinou_qtd >= 4:
-        pontos += 1
-    if treinou_qtd >= 4 and fez_dieta:
-        pontos += 2
-    if bebeu:
-        pontos -= 2
+
     if bebeu and treinou_qtd < 4:
-        pontos -= 3
-    return pontos
+        return -3
+    if bebeu:
+        return -2
+    # Se treinou 4 ou mais vezes e fez dieta, retorna 2 pontos e para aqui
+    if treinou_qtd >= 4 and fez_dieta:
+        return 2
+    # Se treinou 4 ou mais vezes, retorna 1 ponto e para aqui
+    if treinou_qtd >= 4:
+        return 1
+    # Se treinou menos de 4 vezes e não bebeu, retorna -1 ponto
+    return -1
 
 @app.route('/')
 def index():
