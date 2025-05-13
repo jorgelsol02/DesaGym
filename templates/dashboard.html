@@ -99,26 +99,56 @@
 </head>
 <body>
   <h2>Dashboard</h2>
+  <div style="background:#e3f2fd; color:#1976d2; border-radius:6px; padding:14px 18px; margin-bottom:18px; max-width:700px; width:100%; text-align:center; font-weight:600;">
+    Atenção: lembre-se de registrar seus treinos semanalmente. Beba água e não esqueça de se hidratar!
+  </div>
   <p style="margin-top:10px; color:#1976d2; font-weight:600;">Olá, {{ nome_usuario }}</p>
-  <form method="POST">
-    <label>
-      Treinos na semana:
-      <input type="number" name="treinou_qtd" value="0" min="0">
-    </label>
-    <label>
-      <input type="checkbox" name="fez_dieta">
-      Fiz dieta
-    </label>
-    <label>
-      <input type="checkbox" name="bebeu">
-      Ingeri bebida alcoólica
-    </label>
-    <button type="submit">Salvar</button>
-  </form>
+  <div style="display: flex; width: 100%; max-width: 700px; justify-content: center; align-items: flex-start;">
+    <div style="flex: 2; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 18px; margin-right: 24px;">
+      <h3 style="color:#1976d2; margin-top:0;">Observações</h3>
+      <p style="color:#333; font-size:15px;">
+        Em caso que a pessoa fique DOENTE (Gripe, resfriado ou algo relacionado a isso) não será descontado ponto e a pessoa irá manter o mesmo saldo da semana. De resto vai perde ponto …
+        <br><br>
+        <b>CASTIGO</b>
+        <br>
+        Quem ficar em último lugar vai ter q presentear o primeiro colocado com um whey, creatina, pré-treino ou outro suplemento com o valor de até 120 reais.
+        <br><br>
+        Obs: Se passar o prazo de 30 dias e o perdedor não paga o suplemento combinado, o valor final vai aumentando 10 reais por semana.
+      </p>
+    </div>
+    <form method="POST" style="flex: 2;">
+      <label>
+        Treinos na semana:
+        <input type="number" name="treinou_qtd" value="0" min="0">
+      </label>
+      <label>
+        <input type="checkbox" name="fez_dieta">
+        Fiz dieta
+      </label>
+      <label>
+        <input type="checkbox" name="bebeu">
+        Ingeri bebida alcoólica
+      </label>
+      <button type="submit">Salvar</button>
+    </form>
+    <div style="flex: 1; margin-left: 24px; min-width: 180px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 18px;">
+      <h3 style="color:#1976d2; margin-top:0;">Regras do Desafio</h3>
+      <ul style="padding-left:18px; color:#333; font-size:15px;">
+        <li>Treinar menos de 4 vezes na semana: <b>-1 ponto</b></li>
+        <li>Treinar 4 ou mais vezes na semana: <b>+1 ponto</b></li>
+        <li>Treinar 4 ou mais vezes <b>e</b> fazer dieta: <b>+2 pontos</b></li>
+        <li>Ingerir bebida alcoólica: <b>-2 pontos</b></li>
+        <li>Ingerir bebida alcoólica <b>e</b> treinar menos de 4 vezes: <b>-3 pontos</b></li>
+      </ul>
+    </div>
+  </div>
   <div class="links">
     <a href="ranking">Ver Ranking</a>
     <a href="registros">Registros</a>
     <a href="logout">Sair</a>
+    {% if session['usuario_id'] == 1 %}
+      <a href="{{ url_for('admin_usuarios') }}">Administração de Usuários</a>
+    {% endif %}
   </div>
 </body>
 </html>

@@ -32,12 +32,16 @@ def init_db():
 
 def calcular_pontos(treinou_qtd, fez_dieta, bebeu):
     pontos = 0
+    if treinou_qtd < 4:
+        pontos -= 1
     if treinou_qtd >= 4:
         pontos += 1
     if treinou_qtd >= 4 and fez_dieta:
         pontos += 2
     if bebeu:
         pontos -= 2
+    if bebeu and treinou_qtd < 4:
+        pontos -= 3
     return pontos
 
 @app.route('/')
@@ -209,6 +213,58 @@ def register():
         flash('Cadastro realizado com sucesso! Faça login.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
+
+@app.route('/admin/usuarios')
+def admin_usuarios():
+    if 'usuario_id' not in session or session['usuario_id'] != 1:
+        flash('Acesso restrito!', 'error')
+        return redirect(url_for('dashboard'))
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, nome, email FROM usuarios")
+    usuarios = c.fetchall()
+    conn.close()
+    return render_template('admin_usuarios.html', usuarios=usuarios)
+
+@app.route('/admin/usuarios/editar/<int:usuario_id>', methods=['GET', 'POST'])
+def editar_usuario(usuario_id):
+    if 'usuario_id' not in session or session['usuario_id'] != 1:
+        flash('Acesso restrito!', 'error')
+        return redirect(url_for('dashboard'))
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    if request.method == 'POST':
+        nome = request.form['nome']
+        email = request.form['email']
+        c.execute("UPDATE usuarios SET nome = ?, email = ? WHERE id = ?", (nome, email, usuario_id))
+        conn.commit()
+        conn.close()
+        flash('Usuário atualizado com sucesso!', 'success')
+        return redirect(url_for('admin_usuarios'))
+    else:
+        c.execute("SELECT nome, email FROM usuarios WHERE id = ?", (usuario_id,))
+        usuario = c.fetchone()
+        conn.close()
+        return render_template('editar_usuario.html', usuario=usuario, usuario_id=usuario_id)
+
+@app.route('/admin/usuarios/excluir/<int:usuario_id>', methods=['POST'])
+def excluir_usuario(usuario_id):
+    if 'usuario_id' not in session or session['usuario_id'] != 1:
+        flash('Acesso restrito!', 'error')
+        return redirect(url_for('dashboard'))
+    if usuario_id == 1:
+        flash('Não é permitido excluir o usuário administrador.', 'error')
+        return redirect(url_for('admin_usuarios'))
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
+    conn.commit()
+    conn.close()
+    flash('Usuário excluído com sucesso!', 'success')
+    return redirect(url_for('admin_usuarios'))
 
 if __name__ == '__main__':
     app.run(debug=True)
