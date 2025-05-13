@@ -3,11 +3,15 @@ import sqlite3
 import os
 from datetime import datetime
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "db.sqlite3")
+conn = sqlite3.connect(DB_PATH)
+
 app = Flask(__name__)
 app.secret_key = 'testesegredo'
 
 def init_db():
-    conn = sqlite3.connect('db.sqlite3')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS usuarios (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,7 +53,7 @@ def login():
         senha = request.form['senha']
 
         # Conectar ao banco de dados
-        conn = sqlite3.connect('db.sqlite3')
+        conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         
         # Buscar o usuário no banco
@@ -86,7 +90,7 @@ def dashboard():
         return redirect(url_for('login'))
 
     # Buscar nome do usuário logado
-    conn = sqlite3.connect('db.sqlite3')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT nome FROM usuarios WHERE id = ?", (session['usuario_id'],))
     user = c.fetchone()
@@ -102,7 +106,7 @@ def dashboard():
 
         semana = datetime.now().strftime('%Y-%m-%d')
 
-        conn = sqlite3.connect('db.sqlite3')
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute(
             "INSERT INTO registros (usuario_id, semana, treinou_qtd, fez_dieta, bebeu, pontos) VALUES (?, ?, ?, ?, ?, ?)",
@@ -120,7 +124,7 @@ def registros():
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
 
-    conn = sqlite3.connect('db.sqlite3')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     # Buscar nome do usuário junto com os registros
     c.execute("""
@@ -148,7 +152,7 @@ def registros():
 
 @app.route('/ranking')
 def ranking():
-    conn = sqlite3.connect('db.sqlite3')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
         SELECT u.nome, COALESCE(SUM(r.pontos), 0) AS total_pontos
@@ -174,7 +178,7 @@ def deletar_registro(registro_id):
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
 
-    conn = sqlite3.connect('db.sqlite3')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     # Deleta apenas se o registro pertence ao usuário logado
     c.execute("DELETE FROM registros WHERE id = ? AND usuario_id = ?", (registro_id, session['usuario_id']))
@@ -190,7 +194,7 @@ def register():
         email = request.form['email']
         senha = request.form['senha']
 
-        conn = sqlite3.connect('db.sqlite3')
+        conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         # Verifica se já existe usuário com o mesmo email
         c.execute("SELECT id FROM usuarios WHERE email = ?", (email,))
