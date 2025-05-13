@@ -183,5 +183,28 @@ def deletar_registro(registro_id):
     flash('Registro deletado com sucesso!', 'success')
     return redirect(url_for('registros'))
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        nome = request.form['nome']
+        email = request.form['email']
+        senha = request.form['senha']
+
+        conn = sqlite3.connect('db.sqlite3')
+        c = conn.cursor()
+        # Verifica se já existe usuário com o mesmo email
+        c.execute("SELECT id FROM usuarios WHERE email = ?", (email,))
+        if c.fetchone():
+            conn.close()
+            flash('Email já cadastrado!', 'error')
+            return render_template('register.html')
+        # Insere novo usuário
+        c.execute("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)", (nome, email, senha))
+        conn.commit()
+        conn.close()
+        flash('Cadastro realizado com sucesso! Faça login.', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
 if __name__ == '__main__':
     app.run(debug=True)

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login</title>
+  <title>Cadastrar Usuário</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -70,19 +70,23 @@
   </style>
 </head>
 <body>
-  <h2>Login</h2>
+  <h2>Cadastrar novo usuário</h2>
   <form method="POST">
-    <label for="email">Email</label> 
-    <input name="email" id="email" type="text" autocomplete="off" />
+    <label for="nome">Nome</label>
+    <input name="nome" id="nome" type="text" required autocomplete="off" />
+
+    <label for="email">Email</label>
+    <input name="email" id="email" type="text" required autocomplete="off" />
 
     <label for="senha">Senha</label>
-    <input type="password" name="senha" id="senha" autocomplete="off"/>
+    <input type="password" name="senha" id="senha" required autocomplete="off"/>
 
-    <button type="submit">Login</button>
+    <button type="submit">Cadastrar</button>
   </form>
-  <div style="text-align:center; margin-top:10px;">
-    <a href="{{ url_for('register') }}" style="
+  <div style="text-align:center;">
+    <a href="{{ url_for('login') }}" style="
       display: inline-block;
+      margin-top: 12px;
       padding: 10px 22px;
       background: #1976d2;
       color: #fff;
@@ -90,9 +94,8 @@
       border-radius: 4px;
       font-weight: 600;
       transition: background 0.2s;
-      margin-top: 8px;
     " onmouseover="this.style.background='#1565c0'" onmouseout="this.style.background='#1976d2'">
-      Cadastrar novo usuário
+      Voltar ao login
     </a>
   </div>
 </body>
