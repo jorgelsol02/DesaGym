@@ -1,25 +1,40 @@
 from flask import Flask, flash, render_template, request, redirect, url_for, session
-import sqlite3
 import os
 from datetime import datetime
+import psycopg2
+from urllib.parse import urlparse
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "db.sqlite3")
-conn = sqlite3.connect(DB_PATH)
+def get_connection():
+    database_url = os.environ.get('DATABASE_URL')
+
+    if not database_url:
+        raise ValueError("DATABASE_URL não configurada nas variáveis de ambiente")
+
+    result = urlparse(database_url)
+
+    conn = psycopg2.connect(
+        dbname=result.path[1:],
+        user=result.username,
+        password=result.password,
+        host=result.hostname,
+        port=result.port
+    )
+
+    return conn
 
 app = Flask(__name__)
 app.secret_key = 'testesegredo'
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS usuarios (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id SERIAL PRIMARY KEY,
                     nome TEXT NOT NULL,
                     email TEXT UNIQUE NOT NULL,
                     senha TEXT NOT NULL)''')
     c.execute('''CREATE TABLE IF NOT EXISTS registros (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id SERIAL PRIMARY KEY,
                     usuario_id INTEGER,
                     semana TEXT,
                     treinou_qtd INTEGER,
@@ -31,18 +46,14 @@ def init_db():
     conn.close()
 
 def calcular_pontos(treinou_qtd, fez_dieta, bebeu):
-
     if bebeu and treinou_qtd < 4:
         return -3
     if bebeu:
         return -2
-    # Se treinou 4 ou mais vezes e fez dieta, retorna 2 pontos e para aqui
     if treinou_qtd >= 4 and fez_dieta:
         return 2
-    # Se treinou 4 ou mais vezes, retorna 1 ponto e para aqui
     if treinou_qtd >= 4:
         return 1
-    # Se treinou menos de 4 vezes e não bebeu, retorna -1 ponto
     return -1
 
 @app.route('/')
@@ -57,29 +68,20 @@ def login():
         email = request.form['email']
         senha = request.form['senha']
 
-        # Conectar ao banco de dados
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_connection()
         c = conn.cursor()
-        
-        # Buscar o usuário no banco
-        c.execute("SELECT * FROM usuarios WHERE email = ?", (email,))
+        c.execute("SELECT * FROM usuarios WHERE email = %s", (email,))
         user = c.fetchone()
-        
         conn.close()
 
-        # Verificando se o usuário foi encontrado
         if user:
-            print("Usuário encontrado:", user)  # Verificar se o usuário foi encontrado
-            # Verificar a senha
-            if user and user[3] == senha:  # Supondo que a senha esteja no índice 3
-                session['usuario_id'] = user[0]  # Armazenar o id do usuário
-                print("Login bem-sucedido:", session['usuario_id'])
+            if user and user[3] == senha:
+                session['usuario_id'] = user[0]
                 return redirect(url_for('dashboard'))
             else:
-                print("Senha incorreta")  # Senha não bate
+                flash("Senha incorreta", 'error')
         else:
-            print("Usuário não encontrado2")
-        
+            flash("Usuário não encontrado", 'error')
         flash("Email ou senha inválidos", 'error')
 
     return render_template('login.html')
@@ -94,10 +96,9 @@ def dashboard():
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
 
-    # Buscar nome do usuário logado
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT nome FROM usuarios WHERE id = ?", (session['usuario_id'],))
+    c.execute("SELECT nome FROM usuarios WHERE id = %s", (session['usuario_id'],))
     user = c.fetchone()
     conn.close()
     nome_usuario = user[0] if user else 'Usuário'
@@ -108,13 +109,12 @@ def dashboard():
         bebeu = 'bebeu' in request.form
 
         pontos = calcular_pontos(treinou_qtd, fez_dieta, bebeu)
-
         semana = datetime.now().strftime('%Y-%m-%d')
 
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO registros (usuario_id, semana, treinou_qtd, fez_dieta, bebeu, pontos) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO registros (usuario_id, semana, treinou_qtd, fez_dieta, bebeu, pontos) VALUES (%s, %s, %s, %s, %s, %s)",
             (session['usuario_id'], semana, treinou_qtd, int(fez_dieta), int(bebeu), pontos)
         )
         conn.commit()
@@ -129,9 +129,8 @@ def registros():
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     c = conn.cursor()
-    # Buscar nome do usuário junto com os registros
     c.execute("""
         SELECT r.id, r.usuario_id, u.nome, r.semana, r.treinou_qtd, r.fez_dieta, r.bebeu, r.pontos
         FROM registros r
@@ -157,7 +156,7 @@ def registros():
 
 @app.route('/ranking')
 def ranking():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     c = conn.cursor()
     c.execute("""
         SELECT u.nome, COALESCE(SUM(r.pontos), 0) AS total_pontos
@@ -170,23 +169,19 @@ def ranking():
     conn.close()
     return render_template('ranking.html', ranking=ranking)
 
-
 @app.before_request
 def setup():
-    if not os.path.exists('banco.db'):
-        init_db()
-
-from flask import request, flash
+    # No PostgreSQL, não precisa checar arquivo, mas pode garantir que as tabelas existem
+    init_db()
 
 @app.route('/deletar_registro/<int:registro_id>', methods=['POST'])
 def deletar_registro(registro_id):
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     c = conn.cursor()
-    # Deleta apenas se o registro pertence ao usuário logado
-    c.execute("DELETE FROM registros WHERE id = ? AND usuario_id = ?", (registro_id, session['usuario_id']))
+    c.execute("DELETE FROM registros WHERE id = %s AND usuario_id = %s", (registro_id, session['usuario_id']))
     conn.commit()
     conn.close()
     flash('Registro deletado com sucesso!', 'success')
@@ -199,16 +194,14 @@ def register():
         email = request.form['email']
         senha = request.form['senha']
 
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_connection()
         c = conn.cursor()
-        # Verifica se já existe usuário com o mesmo email
-        c.execute("SELECT id FROM usuarios WHERE email = ?", (email,))
+        c.execute("SELECT id FROM usuarios WHERE email = %s", (email,))
         if c.fetchone():
             conn.close()
             flash('Email já cadastrado!', 'error')
             return render_template('register.html')
-        # Insere novo usuário
-        c.execute("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)", (nome, email, senha))
+        c.execute("INSERT INTO usuarios (nome, email, senha) VALUES (%s, %s, %s)", (nome, email, senha))
         conn.commit()
         conn.close()
         flash('Cadastro realizado com sucesso! Faça login.', 'success')
@@ -218,10 +211,9 @@ def register():
 @app.route('/admin/usuarios')
 def admin_usuarios():
     if 'usuario_id' not in session or session['usuario_id'] != 1:
-        flash('Acesso restrito!', 'error')
         return redirect(url_for('dashboard'))
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT id, nome, email FROM usuarios")
     usuarios = c.fetchall()
@@ -234,18 +226,18 @@ def editar_usuario(usuario_id):
         flash('Acesso restrito!', 'error')
         return redirect(url_for('dashboard'))
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     c = conn.cursor()
     if request.method == 'POST':
         nome = request.form['nome']
         email = request.form['email']
-        c.execute("UPDATE usuarios SET nome = ?, email = ? WHERE id = ?", (nome, email, usuario_id))
+        c.execute("UPDATE usuarios SET nome = %s, email = %s WHERE id = %s", (nome, email, usuario_id))
         conn.commit()
         conn.close()
         flash('Usuário atualizado com sucesso!', 'success')
         return redirect(url_for('admin_usuarios'))
     else:
-        c.execute("SELECT nome, email FROM usuarios WHERE id = ?", (usuario_id,))
+        c.execute("SELECT nome, email FROM usuarios WHERE id = %s", (usuario_id,))
         usuario = c.fetchone()
         conn.close()
         return render_template('editar_usuario.html', usuario=usuario, usuario_id=usuario_id)
@@ -259,9 +251,9 @@ def excluir_usuario(usuario_id):
         flash('Não é permitido excluir o usuário administrador.', 'error')
         return redirect(url_for('admin_usuarios'))
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     c = conn.cursor()
-    c.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
+    c.execute("DELETE FROM usuarios WHERE id = %s", (usuario_id,))
     conn.commit()
     conn.close()
     flash('Usuário excluído com sucesso!', 'success')
